@@ -216,3 +216,13 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Project data and model artifacts
+/data/
+*.nii
+*.nii.gz
+*.dcm
+*.pt
+*.pth
+*.npy
+*.npz
