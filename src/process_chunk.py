@@ -1,4 +1,6 @@
 """Process every downloaded patient folder in Data/raw that is listed in the manifest.
+Can be run in chunks, which is necessary for large datasets that don't fit in memory. 
+Specifically, UCSF which is >140 GB. The output is a compressed .npz file per patient in Data/processed. 
 
 Run from the repo root with the venv active:
     python -m src.process_chunk                # process only; raw folders are kept

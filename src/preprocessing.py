@@ -1,5 +1,7 @@
 """Per-patient preprocessing: z-score each contrast inside the brain, crop a fixed window
-around the largest section of the tumor, and stack the 4 contrasts into one array.
+centered around every connected tumor piece holding at least 5% of the tumor, 
+and stack the 4 contrasts into one array.
+
 
 The same code must be used for UTSW (training) and UCSF (external test), so any
 difference between the datasets is a real one and not a preprocessing artifact. 
@@ -13,7 +15,7 @@ import numpy as np
 from scipy import ndimage
 
 
-CROP = 128  # voxels per side; revisit after looking at the logged tumor bounding boxes
+CROP = 128  # voxels per side
 CONTRASTS = ["brain_t1", "brain_t1ce", "brain_t2", "brain_flair"]  # channel order: 0=T1, 1=T1ce, 2=T2, 3=FLAIR
 SEG = "tumorseg_FeTS"  # only used to locate the tumor, never given to the model
 MIN_PIECE = 0.05  # a connected piece counts toward the crop center if it holds at least 5% of the tumor
@@ -76,16 +78,10 @@ def process_case(case_dir):
             raise PreprocessError(f"{name} shape/affine differs from segmentation")
 
     tumor = np.asanyarray(seg_img.dataobj) > 0  # whole tumor: any label above 0
-    # tumor_coords = np.argwhere(tumor)
-    # if len(tumor_coords) == 0:
-    #     raise PreprocessError("empty tumor segmentation")
-    # first_voxel, last_voxel = tumor_coords.min(axis=0), tumor_coords.max(axis=0)
-    # center = (first_voxel + last_voxel) / 2
-    # bbox = last_voxel - first_voxel + 1  # logged for every patient to choose CROP
 
     if not tumor.any():
         raise PreprocessError("empty tumor segmentation")
-    # Center on the largest piece of the tumor, not the whole tumor, to avoid being misled by a tiny satellite nodule
+    # Center on the largest pieces of the tumor, not the whole tumor, to avoid being misled by a tiny segments of tumor
     labeled, n_components = ndimage.label(tumor, structure=np.ones((3, 3, 3)))  # 26-connectivity
     sizes = np.bincount(labeled.ravel())[1:]
     keep = np.where(sizes >= MIN_PIECE * sizes.sum())[0] + 1
