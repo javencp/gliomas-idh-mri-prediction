@@ -13,6 +13,7 @@ from pathlib import Path
 import nibabel as nib
 import numpy as np
 from scipy import ndimage
+from src.config import MIN_TUMOR_VOXELS
 
 
 CROP = 128  # voxels per side
@@ -98,6 +99,11 @@ def process_case(case_dir):
     tumor_in_brain = float((tumor & brain).sum() / tumor.sum())
     mask_crop = crop_center(tumor.astype(np.uint8), center, CROP)
 
+    mask_voxels = int(mask_crop.sum())  # tumor voxels inside the crop (same definition as notebook 02)
+    if mask_voxels < MIN_TUMOR_VOXELS:
+        raise PreprocessError(
+            f"tumor segmentation too small ({mask_voxels} voxels in crop, minimum {MIN_TUMOR_VOXELS})")
+    
     # Normalize on the whole brain before cropping, so the statistics don't depend on tumor size or position
     channels = [crop_center(zscore_brain(v), center, CROP) for v in volumes]
     image = np.stack(channels).astype(np.float16)  # float16 halves storage; cast to float32 for training
@@ -107,4 +113,5 @@ def process_case(case_dir):
     return {"image": image, "mask": mask_crop,
             "bbox": bbox, "center": center, "tumor_in_brain": tumor_in_brain,
             "tumor_in_crop": float(mask_crop.sum() / tumor.sum()), 
-            "n_components": int(n_components), "main_fraction": main_fraction}
+            "n_components": int(n_components), "main_fraction": main_fraction,
+            "mask_voxels": mask_voxels}

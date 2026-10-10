@@ -21,7 +21,7 @@ from src.config import LOG, MANIFEST, PROCESSED, RAW
 
 LOG_FIELDS = ["patient_id", "status", "reason", "bbox_x", "bbox_y", "bbox_z",
               "center_x", "center_y", "center_z", "exceeds_crop", "tumor_in_brain",
-              "tumor_in_crop", "n_components", "main_fraction"]  # fields in the log file
+              "tumor_in_crop", "n_components", "main_fraction", "mask_voxels"]  # fields in the log file
 
 
 def verify(path):
@@ -78,7 +78,8 @@ def main():
                                exceeds_crop=bool((r["bbox"] > pp.CROP).any()),
                                tumor_in_crop=round(r["tumor_in_crop"], 4),
                                n_components=r["n_components"],
-                               main_fraction=round(r["main_fraction"], 4))
+                               main_fraction=round(r["main_fraction"], 4),
+                               mask_voxels=r["mask_voxels"])
                 except Exception as e:  # keep the loop going; the reason goes in the log
                     out.unlink(missing_ok=True)
                     n_failed += 1
