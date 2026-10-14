@@ -8,8 +8,11 @@ RAW = DATA / "raw"                        # downloaded TCIA folders (temporary)
 PROCESSED = DATA / "processed"            # one BT#### per patient
 MANIFEST = DATA / "manifest.csv"          # full manifest (gitignored)
 
+# results folder
 SPLITS = PROJECT_ROOT / "results" / "utsw_folds.csv"   # patient_id + fold only (committed)
 LOG = PROJECT_ROOT / "results" / "processing_log.csv"  # per-patient bbox/center/status (committed)
+
+# metadata files
 METADATA_TSV = DATA / "UTSW_Glioma_Metadata-2-1.tsv"     # path to the UTSW metadata .tsv you downloaded (gitignored)
 UCSF_METADATA_CSV = DATA / "UCSF-PDGM-metadata_v5.csv"   # UCSF-PDGM metadata .csv (gitignored)
 
@@ -20,3 +23,5 @@ UCSF_CLEAN = DATA / "ucsf_clean.csv"                     # one row per UCSF pati
 # Set from the volume distribution and visual review in notebook 02, before looking at IDH.
 # Applied unchanged to UCSF. Strict inequality: volume < MIN_TUMOR_VOXELS is excluded.
 MIN_TUMOR_VOXELS = 50
+
+PROCESSED_NPY = DATA / "processed_npy"   # uncompressed copy for fast loading (gitignored with Data/)

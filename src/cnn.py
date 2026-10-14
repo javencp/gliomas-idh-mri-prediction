@@ -4,12 +4,14 @@ import torch
 from torch import nn
 from torch.utils.data import Dataset
 
-from src.config import PROCESSED   # Data/processed, one <patient_id>.npz per patient
+from src.config import PROCESSED, PROCESSED_NPY   # compressed .npz crops; optional uncompressed .npy copy
 
 
 class GliomaCrops(Dataset):
-    """One patient per item: a 4 x 128 x 128 x 128 image and the IDH label (1 = mutant).
-    Only the "image" key is read from the .npz, so the tumor mask can never reach the model."""
+    """One patient per item: a 4 x 128 x 128 x 128 image (float16) and the IDH label (1 = mutant).
+    Only the image is ever read, so the tumor mask can never reach the model.
+    If an uncompressed copy exists (made by src.to_npy) it is used because it loads much faster;
+    otherwise the compressed .npz is read. The caller converts to float32 on the device."""
 
     def __init__(self, patient_ids, labels):
         self.ids = list(patient_ids)
@@ -18,10 +20,15 @@ class GliomaCrops(Dataset):
     def __len__(self):
         return len(self.ids)
 
+    def _load(self, patient_id):
+        fast = PROCESSED_NPY / f"{patient_id}.npy"
+        if fast.exists():
+            return np.load(fast)
+        with np.load(PROCESSED / f"{patient_id}.npz") as f:
+            return f["image"]                        # .npz decompresses a key only when it is asked for
+
     def __getitem__(self, i):
-        with np.load(PROCESSED / f"{self.ids[i]}.npz") as f:
-            image = f["image"]                       # .npz decompresses a key only when it is asked for
-        return torch.from_numpy(image.astype(np.float32)), torch.tensor(self.labels[i])
+        return torch.from_numpy(self._load(self.ids[i])), torch.tensor(self.labels[i])
 
 
 def conv_block(c_in, c_out):
