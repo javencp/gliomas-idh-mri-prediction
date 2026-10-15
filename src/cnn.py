@@ -43,22 +43,24 @@ def conv_block(c_in, c_out):
 
 class SmallCNN(nn.Module):
     """Small 3D CNN. The first conv has stride 2, which halves every side (8x fewer voxels)
-    before the expensive layers. Output: one logit per patient (apply sigmoid for a probability)."""
+    before the expensive layers. width multiplies every layer's channel count (1 = 8, 16, 32, 64, 64).
+    Output: one logit per patient (apply sigmoid for a probability)."""
 
-    def __init__(self, in_channels=4, dropout=0.3):
+    def __init__(self, in_channels=4, dropout=0.3, width=1):
         super().__init__()
+        c = [int(w * width) for w in (8, 16, 32, 64, 64)]
         self.features = nn.Sequential(
-            nn.Conv3d(in_channels, 8, kernel_size=3, stride=2, padding=1, bias=False),  # 128 -> 64
-            nn.BatchNorm3d(8),
+            nn.Conv3d(in_channels, c[0], kernel_size=3, stride=2, padding=1, bias=False),  # 128 -> 64
+            nn.BatchNorm3d(c[0]),
             nn.ReLU(inplace=True),
-            conv_block(8, 16),    # 64 -> 32
-            conv_block(16, 32),   # 32 -> 16
-            conv_block(32, 64),   # 16 -> 8
-            conv_block(64, 64),   # 8 -> 4
+            conv_block(c[0], c[1]),   # 64 -> 32
+            conv_block(c[1], c[2]),   # 32 -> 16
+            conv_block(c[2], c[3]),   # 16 -> 8
+            conv_block(c[3], c[4]),   # 8 -> 4
             nn.AdaptiveAvgPool3d(1),  # average each channel over the whole volume
             nn.Flatten(),
         )
-        self.head = nn.Sequential(nn.Dropout(dropout), nn.Linear(64, 1))
+        self.head = nn.Sequential(nn.Dropout(dropout), nn.Linear(c[4], 1))
 
     def forward(self, x):
         return self.head(self.features(x)).squeeze(1)
