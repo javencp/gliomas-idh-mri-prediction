@@ -44,7 +44,7 @@ for batch in BATCHES:
 CONFIGS["cosine"] = {**BASE, "cosine": True, "max_epochs": 25}   # learning rate decays to ~0 over these 25 epochs
 CONFIGS["width2"] = {**BASE, "width": 2}                         # twice the channels in every layer
 
-FINAL_CONFIG = "baseline"          # configuration used by the final run (set after tuning)
+FINAL_CONFIG = "b8_lr0.001_wd0.01"          # configuration used by the final run (set after tuning)
 DEV_FOLDS = [0, 1]                 # folds used for tuning
 BASELINE_SEEDS = [42, 43, 44]      # extra seeds run only for the baseline, to measure run-to-run noise
 SEED = 42                          # training seed for every other run
@@ -56,7 +56,7 @@ OUT_NAME = "cnn_v2"                # Round 1 results stay untouched in results/c
 # Results go to Drive when it is mounted (Colab), otherwise to results/<OUT_NAME> in the repo.
 DRIVE_OUT = Path("/content/drive/MyDrive/glioma") / OUT_NAME
 OUT = DRIVE_OUT if DRIVE_OUT.parent.parent.exists() else PROJECT_ROOT / "results" / OUT_NAME
-# ------------------------------------------------------------------------------
+# --------------------------------------------------------------------
 
 
 def make_loader(cohort, idx, training, device, batch):
