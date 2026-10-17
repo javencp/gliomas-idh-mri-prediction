@@ -1,7 +1,5 @@
-"""
-Evaluation shared by every model (clinical, image, fused, and later UCSF), so the numbers are
-computed the same way everywhere.
-"""
+"""Evaluation shared by every model (clinical, image, fused, and later UCSF), so the numbers are
+computed the same way everywhere. Definitions follow notebook 03."""
 import numpy as np
 from sklearn.metrics import (accuracy_score, average_precision_score, brier_score_loss,
                              precision_score, recall_score, roc_auc_score)
@@ -29,16 +27,21 @@ def bootstrap_ci(y, prob, metric, n_boot=1000, seed=42):
     rng = np.random.default_rng(seed)
     n = len(y)
     stats = [metric(y[i], prob[i]) for i in (rng.integers(0, n, n) for _ in range(n_boot))]
-    return np.percentile(stats, [2.5, 97.5])
+    return np.nanpercentile(stats, [2.5, 97.5])
 
 
-def paired_auroc_difference(y, prob_a, prob_b, n_boot=1000, seed=42):
-    """AUROC(a) - AUROC(b) and its 95% interval. Both models are scored on the same resampled
+def paired_difference(y, prob_a, prob_b, metric, n_boot=1000, seed=42):
+    """metric(a) - metric(b) and its 95% interval. Both models are scored on the same resampled
     patients in every draw, so the interval reflects the difference, not each model separately."""
     rng = np.random.default_rng(seed)
     n = len(y)
     diffs = []
     for _ in range(n_boot):
         i = rng.integers(0, n, n)
-        diffs.append(roc_auc_score(y[i], prob_a[i]) - roc_auc_score(y[i], prob_b[i]))
-    return roc_auc_score(y, prob_a) - roc_auc_score(y, prob_b), np.percentile(diffs, [2.5, 97.5])
+        diffs.append(metric(y[i], prob_a[i]) - metric(y[i], prob_b[i]))
+    return metric(y, prob_a) - metric(y, prob_b), np.nanpercentile(diffs, [2.5, 97.5])
+
+
+def paired_auroc_difference(y, prob_a, prob_b, n_boot=1000, seed=42):
+    """AUROC(a) - AUROC(b), the pre-specified model comparison."""
+    return paired_difference(y, prob_a, prob_b, roc_auc_score, n_boot, seed)
