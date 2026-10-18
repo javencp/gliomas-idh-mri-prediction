@@ -13,9 +13,13 @@ class GliomaCrops(Dataset):
     If an uncompressed copy exists (made by src.to_npy) it is used because it loads much faster;
     otherwise the compressed .npz is read. The caller converts to float32 on the device."""
 
-    def __init__(self, patient_ids, labels):
+    def __init__(self, patient_ids, labels, tabular=None):
         self.ids = list(patient_ids)
         self.labels = np.asarray(labels, dtype=np.float32)
+        # optional (n_patients, n_features) array, e.g. scaled age and sex, in the same order as patient_ids
+        self.tabular = None if tabular is None else np.asarray(tabular, dtype=np.float32)
+        if self.tabular is not None:
+            assert len(self.tabular) == len(self.ids), "tabular rows must match patient_ids"
 
     def __len__(self):
         return len(self.ids)
@@ -28,7 +32,11 @@ class GliomaCrops(Dataset):
             return f["image"]                        # .npz decompresses a key only when it is asked for
 
     def __getitem__(self, i):
-        return torch.from_numpy(self._load(self.ids[i])), torch.tensor(self.labels[i])
+        image = torch.from_numpy(self._load(self.ids[i]))
+        label = torch.tensor(self.labels[i])
+        if self.tabular is None:
+            return image, label                                   # image-only: (image, label)
+        return image, torch.from_numpy(self.tabular[i]), label    # fused: (image, tabular, label)
 
 
 def conv_block(c_in, c_out):
@@ -64,3 +72,21 @@ class SmallCNN(nn.Module):
 
     def forward(self, x):
         return self.head(self.features(x)).squeeze(1)
+
+class FusedCNN(SmallCNN):
+    """
+    SmallCNN plus tabular inputs (scaled age, sex) joined at the final layer.
+    The convolutional part is unchanged. Dropout is applied to the 64 image features only,
+    then the tabular values are appended and one linear layer gives the logit.
+    SmallCNN itself is untouched, so the saved round 2 weights still load into it.
+    """
+
+    def __init__(self, n_tab=2, in_channels=4, dropout=0.3, width=1):
+        super().__init__(in_channels=in_channels, dropout=dropout, width=width)
+        del self.head                                   # the image-only head is replaced below
+        self.drop = nn.Dropout(dropout)
+        self.fc = nn.Linear(int(64 * width) + n_tab, 1)  # 64 image features + n_tab tabular values
+
+    def forward(self, x, tab):
+        f = self.drop(self.features(x))
+        return self.fc(torch.cat([f, tab], dim=1)).squeeze(1)
