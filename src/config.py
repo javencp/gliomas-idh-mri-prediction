@@ -9,8 +9,11 @@ PROCESSED = DATA / "processed"            # one BT#### per patient
 MANIFEST = DATA / "manifest.csv"          # full manifest (gitignored)
 
 # results folder
-SPLITS = PROJECT_ROOT / "results" / "utsw_folds.csv"   # patient_id + fold only (committed)
-LOG = PROJECT_ROOT / "results" / "processing_log.csv"  # per-patient bbox/center/status (committed)
+RESULTS = PROJECT_ROOT / "results"       
+SPLITS = RESULTS / "utsw_folds.csv"   # patient_id + fold only (committed)
+LOG = RESULTS / "processing_log.csv"  # per-patient bbox/center/status (committed)
+OOF_PATH = RESULTS / "oof_predictions.csv"             # out-of-fold probabilities, one column per model (committed)
+CMP_PATH = RESULTS / "model_comparison.csv"            # one row of metrics per model (committed)
 
 # metadata files
 METADATA_TSV = DATA / "UTSW_Glioma_Metadata-2-1.tsv"     # path to the UTSW metadata .tsv you downloaded (gitignored)
