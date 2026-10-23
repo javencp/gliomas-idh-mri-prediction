@@ -3,7 +3,7 @@ centered around every connected tumor piece holding at least 5% of the tumor,
 and stack the 4 contrasts into one array.
 
 
-The same code must be used for UTSW (training) and UCSF (external test), so any
+The same code works for UTSW (training) and UCSF (external test), so any
 difference between the datasets is a real one and not a preprocessing artifact. 
 Originally, functions were in Notebooks/00_inspect_one_patient.ipynb, 
 but they are now in src/preprocessing.py so they can be imported by src/process_chunk.py. 
@@ -64,7 +64,7 @@ def _load(case_dir, name):
     return nib.load(path)
 
 
-def process_case(case_dir):
+def process_case(case_dir, CONTRASTS=CONTRASTS, SEG=SEG): # default UTSW contrasts and seg 
     """Return {'image': (4, CROP, CROP, CROP) float16, 'mask': (CROP, CROP, CROP) uint8,
     'bbox': tumor extent in voxels, 'center': tumor center in voxel coordinates,
     'tumor_in_brain': fraction of tumor voxels inside the brain mask}.
