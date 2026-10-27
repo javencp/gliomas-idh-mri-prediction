@@ -1,0 +1,4 @@
+model,n_patients,auroc,pr_auc,brier,accuracy,precision,recall,specificity,mean_predicted,n_called_mutant,auroc_ci_low,auroc_ci_high,pr_auc_ci_low,pr_auc_ci_high
+age_only,495,0.905,0.728,0.093,0.84,0.579,0.854,0.837,0.253,152,0.87,0.935,0.638,0.825
+image_v2,495,0.919,0.749,0.098,0.764,0.466,0.922,0.722,0.315,204,0.885,0.952,0.658,0.853
+fused,495,0.94,0.878,0.074,0.822,0.543,0.922,0.796,0.278,175,0.905,0.969,0.825,0.927
