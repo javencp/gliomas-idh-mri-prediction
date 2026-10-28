@@ -2,9 +2,9 @@
 
 > A reproducible, cross-institution machine learning project.
 
-> **Status: analysis complete.** Models were developed on UTSW-Glioma and tested once on UCSF-PDGM; results can be found [Here](#results).
+> **Status: analysis complete.** Models were developed on UTSW-Glioma and tested once on UCSF-PDGM; results can be found under [Results](#results).
 >
-> **Reproduciblity**: steps for [Setup](#setup)
+> **Reproducibility**: steps for [Setup](#setup)
 >
 > **Not a clinical tool.** This is a research and learning project. One external institution is not clinical validation.
 
@@ -15,6 +15,15 @@
     - **IDH mutant:** IDH-mutant diffuse astrocytic tumors form a single type, "Astrocytoma, IDH-mutant", graded 2 to 4 [1].
     - **IDH wildtype:** IDH-wildtype diffuse astrocytic tumors in adults that meet specific histologic or molecular criteria are classed as "Glioblastoma, IDH-wildtype", grade 4 [1].
 - **Radiogenomics:** the field that connects medical imaging (here, MRI) with a patient's genomic or molecular data, which could allow non-invasive disease analysis before surgery or other more invasive approaches.
+- **MRI contrasts:** an MRI scan can be acquired in several ways, each highlighting different tissue properties. This project uses four, stacked as the model's input channels in this order:
+    - **T1:** shows brain anatomy; fluid appears dark.
+    - **Post-contrast T1 (T1c):** a T1 scan taken after a gadolinium-based contrast agent is injected into the blood. It brightens areas where the blood-brain barrier is leaky, which often marks active tumor.
+    - **T2:** fluid appears bright, so it highlights swelling (edema) and fluid-filled regions.
+    - **FLAIR (fluid-attenuated inversion recovery):** a T2-type scan with the signal from cerebrospinal fluid suppressed, which makes swelling around the tumor easier to see.
+
+## Why it matters
+
+IDH status is normally known only after tumor tissue has been sampled by biopsy or surgery and tested. An MRI-based estimate could in principle be available earlier and without additional tissue sampling, which is the motivation behind radiogenomics work like this. This project does not show that a model is ready for that role. The best model improves only modestly over age alone, it was tested on one external institution, and it predicts IDH status only, not diagnosis or survival. See [Results](#results) for the evidence.
 
 ## Goal
 
@@ -48,8 +57,8 @@ Design choices:
 - **Splits:** by patient, never by image or slice. Five stratified patient-level folds; every UTSW patient is scored by a model that never trained on their fold (out-of-fold).
 - **No leakage from tuning:** the decision cutoff comes from training labels only (0.284, the UTSW mutant rate, for UCSF too). All tuning happens inside UTSW-Glioma. UCSF-PDGM labels are never used for modeling decisions.
 - **Features:** only information available at imaging time (age and sex). Diagnosis, tumor type, WHO grade, 1p/19q, MGMT, survival, and extent of resection are excluded, since they are defined partly by IDH status or unknown before surgery.
-- **Metrics:** AUROC (headline), PR-AUC next to its prevalence baseline, sensitivity/recall, specificity and precision at the fixed cutoff, Brier score and calibration. Patient-level bootstrap 95% confidence intervals are reported on AUROC and PR-AUC. A model counts as an improvement only if the paired 95% CI of its AUROC difference excludes 0; all other comparisons are exploratory.
-- **UCSF analysis plan:** fixed before UCSF was scored. Each model's UCSF prediction is the mean of its five fold models, and no recalibration was applied. The scoring script never reads labels; labels are joined only in the UCSF evaluation notebook, and UCSF was scored once.
+- **Metrics:** AUROC (headline), PR-AUC next to its prevalence baseline, sensitivity/recall, specificity and precision at the fixed cutoff, Brier score and calibration. While PR-AUC would be useful here due to the class imbalance, since two different institutions with different mutant rates were used, AUROC is a better headline since it does not depend on prevalence. Patient-level bootstrap 95% confidence intervals are reported on AUROC and PR-AUC. A model counts as an improvement only if the paired 95% CI of its AUROC difference excludes 0; all other comparisons are exploratory.
+- **UCSF scoring:** each model's UCSF prediction is the mean of its five fold models, and no recalibration was applied. The scoring script never reads labels; labels are joined only in the UCSF evaluation notebook, and UCSF was scored once.
 - **Cross-dataset differences:** the two datasets were preprocessed with different upstream pipelines, so intensities are normalized per scan and orientation and shape are checked.
 
 ## Results
@@ -62,6 +71,8 @@ UTSW-Glioma scores are out-of-fold over 617 patients and are **development estim
 | Image only | 0.907 (0.880 to 0.930) | 0.919 (0.885 to 0.952) | 0.749 |
 | Fused (image + age + sex) | 0.922 (0.894 to 0.947) | 0.940 (0.905 to 0.969) | 0.878 |
 
+Only AUROC differences were pre-specified as tests. Differences in PR-AUC, Brier score and the other metrics are exploratory.
+
 **Main Findings** 
 - **Ranking held up on a new institution.** AUROC did not drop on UCSF. But age alone also scored higher there, so UCSF looks like an easier set. This does not show better generalization, and absolute levels should not be compared across datasets.
 - **Age alone is a strong baseline.** Mutant patients are much younger (UTSW median 38 vs 63 years).
@@ -69,7 +80,7 @@ UTSW-Glioma scores are out-of-fold over 617 patients and are **development estim
 - **Images alone are not shown to beat age.** Image-only minus age-only is +0.014 on UCSF (-0.023 to 0.053) and +0.027 on UTSW (-0.006 to 0.057).
 
 **Extended Findings** 
-- **Beyond age (exploratory).** In the youngest age band, where age separates poorly, the image models stay well above age-only on both datasets (UCSF, up to 50 years: age 0.76, image 0.92, fused 0.94). This suggests the images carry information beyond age. It does not show what that information is.
+- **Beyond age (exploratory).** In the youngest age band, where age separates poorly, the image models stay well above age-only on both datasets (UCSF, up to 50 years: age 0.76, image 0.92, fused 0.94). This suggests the images carry information beyond age. It does not show what that information is. The older UCSF age bands have too few mutants to evaluate (12 and 3), so this check covers only patients up to 50.
 - **Probabilities do not transfer.** At the fixed UTSW cutoff, all models over-call mutants on UCSF, and calibration curves sit below the diagonal in the lower and middle ranges, most clearly for the image-only model.
 - **Scanner and testing method (UTSW).** No clear differences across scanner make, field strength or IDH testing method (descriptive; intervals about ±0.05).
 - **Grad-CAM (UTSW, descriptive).** Heatmaps show which image regions the score responds to. Most of their apparent concentration on the tumor comes from the crops being tumor-centered, so they do not show that the model "looks at the tumor".
@@ -129,20 +140,21 @@ Training uses the committed launcher notebook, which mounts Google Drive, clones
 
 ### 5. Score UCSF-PDGM
 
-The trained fold weights are committed in `results/`, so no retraining is needed:
+The trained fold weights are committed in `results/`, so no retraining is needed. `results/ucsf_predictions.csv` already holds the predictions from the one locked UCSF run, and `results/ucsf_model_comparison.csv` holds the summary, so you can inspect the results without re-running anything. The UCSF evaluation notebook also needs the UCSF manifest built in step 3.
+
+To re-score (not needed to read the results), first complete steps 2 and 3 for UCSF-PDGM so the processed crops and manifest exist, then run:
 
 ```powershell
-python -m src.fit_age_only
-python -m src.score_ucsf
+python -m src.score_ucsf --overwrite
 ```
 
-`src.fit_age_only` fits the five age-only models on the saved UTSW folds. `src.score_ucsf` is label-blind and writes `results/ucsf_predictions.csv`; it refuses to overwrite existing predictions unless you pass `--overwrite`. Labels are joined only in the UCSF evaluation notebook. UCSF was designed as a one-time test, so any rerun is a new run and should be reported as one.
+`src.score_ucsf` is label-blind and writes `results/ucsf_predictions.csv`; without `--overwrite` it refuses to replace the existing file. Labels are joined only in the UCSF evaluation notebook. `src.fit_age_only` fits the five age-only models on the saved UTSW folds; run `python -m src.fit_age_only` first only if `results/age_only/` is missing (it needs the UTSW manifest from step 3). UCSF was designed as a one-time test, so any re-run is a new run and should be reported as one.
 
 ## Repository contents
 
 ```
 src/         preprocessing, models, training and scoring scripts, metrics, config
-notebooks/   analysis in order: data inspection, metadata, preprocessing QC,
+Notebooks/   analysis in order: data inspection, metadata, preprocessing QC,
              clinical baseline, image-only CNN, fused model, subgroup report,
              Grad-CAM, UCSF inspection, manifest, QC and evaluation;
              plus the Colab launcher
